@@ -1,9 +1,12 @@
+import java.io.*;
 import java.util.*;
 
 /**
  * Created by gidutz on 5/1/14.
  */
 public class ResultHandler implements Runnable {
+    private String timestamp;
+    private String path;
     private String inputFile;
 
     /*list of stores that were added since the last run*/
@@ -20,7 +23,6 @@ public class ResultHandler implements Runnable {
 
 
     /**
-     *
      * @param oldList
      * @param newList
      * @param path
@@ -32,6 +34,9 @@ public class ResultHandler implements Runnable {
         this.removedSinceLastRun = new LinkedList<Store>();
         this.oldList = oldList;
         this.newList = newList;
+        this.path = path;
+        this.timestamp = timeStamp;
+
     }
 
     @Override
@@ -39,20 +44,32 @@ public class ResultHandler implements Runnable {
 
         compareLists();
         logResultsToFile();
-        //TODO:
-    /*
-    * get the last file
-    * get the current file
-    * compare the files
-    * make result file "Scrap from date... was compared to scrap from date... x new restaurants were added, y were removed
-    * here is the list of restaurants added, here is the list of restaurants removed.
-    *
-    * */
+
 
     }
 
     private void logResultsToFile() {
+        PrintWriter out = null;
+        System.out.println(path + "/" + timestamp + "-RESULTS.txt");
+        try {
+            out = new PrintWriter(new BufferedWriter(new FileWriter(path  + timestamp + "-RESULTS.txt", true)));
+            out.println("result of run from " + timestamp);
 
+            out.println("new restaurants:");
+            for (Store store : addedSinceLastRun) {
+                out.println(store);
+            }
+
+            out.println("removed restaurants:");
+            for (Store store : removedSinceLastRun) {
+                out.println(store);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            out.flush();
+            out.close();
+        }
     }
 
     /*
@@ -71,13 +88,15 @@ public class ResultHandler implements Runnable {
                 continue;
             }
 
-            oldStore = oldList.poll();
+            oldStore = oldList.peek();
             if (oldStore.equals(newList.peek())) {
                 newList.poll();
+                oldList.poll();
             } else if (oldStore.compareTo(newList.peek()) > 0) {
                 addedSinceLastRun.add(newList.poll());
             } else {
                 removedSinceLastRun.add(oldStore);
+                oldList.poll();
             }
 
         }
@@ -87,7 +106,6 @@ public class ResultHandler implements Runnable {
             }
         }
     }
-
 
 
 }

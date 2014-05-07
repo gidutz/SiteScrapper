@@ -47,8 +47,8 @@ public class SiteScapper {
         loadProperties();
 
         java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(java.util.logging.Level.OFF);
-        ExecutorService executor = Executors.newCachedThreadPool();
 
+        ExecutorService executor = Executors.newCachedThreadPool();
         CompletionService<ConcurrentSkipListSet<Store>> completionService = new ExecutorCompletionService<ConcurrentSkipListSet<Store>>(executor);
         try {
             Future<ConcurrentSkipListSet<Store>> future = null;
@@ -79,9 +79,16 @@ public class SiteScapper {
 
             logToFile();
 
-            System.out.println("Total of " + storeList.size() + "stores");
+            System.out.println("Total of " + storeList.size() + " stores");
 
-            ResultHandler resultHandler = new ResultHandler(storeList, lastRunList(), outPath, timeStamp);
+
+            setProperties();
+
+
+            ResultHandler resultHandler = new ResultHandler(lastRunList(), storeList, outPath, timeStamp);
+            Thread handleResults = new Thread(resultHandler);
+            handleResults.join();
+            handleResults.start();
 
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -92,11 +99,10 @@ public class SiteScapper {
             System.exit(1);
         } finally {
             executor.shutdown();
-
+            System.out.println("Run completed successfully!");
         }
 
-        setProperties();
-        System.out.println("Run completed successfully!");
+
     }
 
     /**
@@ -107,7 +113,7 @@ public class SiteScapper {
         File jsonOutFile = new File(outPath + timeStamp + JSON);
         File tableOutFile = new File(outPath + timeStamp + TABLE);
 
-       System.out.println("trying to log to files: " + jsonOutFile.getAbsolutePath());
+        System.out.println("trying to log to files: " + jsonOutFile.getAbsolutePath());
         try {
             if (!jsonOutFile.exists()) {
                 jsonOutFile.createNewFile();
@@ -158,7 +164,7 @@ public class SiteScapper {
         PrintWriter tableOutputStream = null;
         try {
             for (int i = 0; i < storeList.size(); i++) {
-                tableOutputStream = new PrintWriter(new FileOutputStream(tableOutFile,true));
+                tableOutputStream = new PrintWriter(new FileOutputStream(tableOutFile, true));
 
                 tableOutputStream.println(storeList.get(i));
                 tableOutputStream.flush();
@@ -237,8 +243,8 @@ public class SiteScapper {
 
             // set the properties value
             prop.setProperty(LAST_RUN_TAG, timeStamp);
-            prop.setProperty(URL_TAG,urlsFile);
-            prop.setProperty(OUTPUT_PATH_TAG,outPath);
+            prop.setProperty(URL_TAG, urlsFile);
+            prop.setProperty(OUTPUT_PATH_TAG, outPath);
 
             // save properties to project root folder
             prop.store(output, null);
@@ -274,8 +280,6 @@ public class SiteScapper {
         Object obj = JSONValue.parse(sb.toString());
         JSONArray array = (JSONArray) obj;
         for (int i = 0; i < array.size(); i++) {
-            System.out.println(array.get(i));
-
             returnList.add(JsonFetcher.storeFromJSON(array.get(i).toString()));
         }
         return returnList;
